@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI → Python → Изображение</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header>
+    <h1>AI → Python → Image</h1>
+    <p class="sub">Ми��ималистичный генератор графики и скриптов (numpy/matplotlib/pandas/pillow)</p>
+  </header>
+
+  <main>
+    <section class="panel">
+      <form id="frm">
+        <label for="prompt">Опишите, что нужно сгенерировать:</label>
+        <textarea id="prompt" name="prompt" rows="5" placeholder="Например: Построй график sin(x) на [-2π,2π] с сеткой и подписями осей."></textarea>
+        <div class="actions">
+          <button type="submit">Сгенерировать</button>
+          <span id="status"></span>
+        </div>
+      </form>
+    </section>
+
+    <section class="results">
+      <div class="result-block">
+        <h2>Код</h2>
+        <pre id="code" class="mono muted">—</pre>
+      </div>
+      <div class="result-block">
+        <h2>Изображение</h2>
+        <img id="img" src="/static/placeholder.svg" alt="result" />
+      </div>
+      <div class="result-block">
+        <h2>stdout</h2>
+        <pre id="stdout" class="mono muted">—</pre>
+      </div>
+      <div class="result-block">
+        <h2>stderr</h2>
+        <pre id="stderr" class="mono muted">—</pre>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <small>Файлы удаляются автоматически через ENV IMAGE_RETENTION_DAYS. Безопасное исполнение в изоляции (без сети).</small>
+  </footer>
+
+  <script>
+    const frm = document.getElementById('frm');
+    const promptEl = document.getElementById('prompt');
+    const codeEl = document.getElementById('code');
+    const imgEl = document.getElementById('img');
+    const stdoutEl = document.getElementById('stdout');
+    const stderrEl = document.getElementById('stderr');
+    const statusEl = document.getElementById('status');
+
+    frm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const prompt = promptEl.value.trim();
+      if (!prompt) return;
+      statusEl.textContent = 'Генерация...';
+      codeEl.textContent = '—';
+      stdoutEl.textContent = '—';
+      stderrEl.textContent = '—';
+      imgEl.src = '/static/placeholder.svg';
+
+      try {
+        const res = await fetch('/generate', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({prompt})
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          statusEl.textContent = data.error || 'Ошибка';
+          return;
+        }
+        statusEl.textContent = `Готово (код=${data.return_code})`;
+
+        // Load code
+        const codeRes = await fetch(data.code_url);
+        codeEl.textContent = await codeRes.text();
+
+        // Image
+        imgEl.src = data.image_url;
+
+        // stdout/stderr
+        const sOutRes = await fetch(data.stdout_url);
+        stdoutEl.textContent = await sOutRes.text();
+
+        const sErrRes = await fetch(data.stderr_url);
+        stderrEl.textContent = await sErrRes.text();
+      } catch (err) {
+        statusEl.textContent = 'Ошибка сети';
+      }
+    });
+  </script>
+</body>
+</html>
