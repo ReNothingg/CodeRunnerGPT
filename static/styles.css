@@ -1,5 +1,4 @@
 :root {
-    /* Палитра */
     --bg: #f8f9fa;
     --fg: #212529;
     --muted: #6c757d;
@@ -8,7 +7,6 @@
     --primary: #007bff;
     --primary-light: #e6f2ff;
 
-    /* Размеры */
     --radius: 12px;
     --font-base: 16px;
     --font-small: 14px;
@@ -30,7 +28,6 @@ html, body {
     line-height: 1.6;
 }
 
-/* Общий контейнер */
 .page {
     max-width: 820px;
     margin: 0 auto;
@@ -47,7 +44,6 @@ html, body {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
-/* Заголовок */
 .chat-header {
     text-align: center;
     padding: 24px;
@@ -67,7 +63,6 @@ html, body {
     margin: 8px 0 0;
 }
 
-/* Область сообщений */
 .messages {
     flex-grow: 1;
     overflow-y: auto;
@@ -114,7 +109,6 @@ html, body {
     word-wrap: break-word;
 }
 
-/* Поле ввода */
 .composer-container {
     padding: var(--gap);
     border-top: 1px solid var(--line);
@@ -173,7 +167,6 @@ html, body {
     transform: scale(0.95);
 }
 
-/* Вывод результата */
 .output-container {
     border: 1px solid var(--line);
     border-radius: var(--radius);
@@ -238,7 +231,6 @@ html, body {
     background: #fffafa;
 }
 
-/* Изображения */
 .term-images {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -259,7 +251,6 @@ html, body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
-/* Блок кода */
 .code-wrapper {
     border-radius: 8px;
     overflow: hidden;
@@ -274,7 +265,6 @@ html, body {
     padding: 14px;
 }
 
-/* Скрытые элементы и плейсхолдеры */
 .hidden {
     display: none !important;
 }
@@ -292,7 +282,6 @@ html, body {
     text-align: center;
 }
 
-/* Спиннер */
 .spinner {
     position: fixed;
     inset: 0;
@@ -319,7 +308,6 @@ html, body {
     }
 }
 
-/* Адаптивность */
 @media (max-width: 600px) {
     .msg {
         max-width: 95%;

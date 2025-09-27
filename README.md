@@ -1,7 +1,5 @@
 # CodeRunnerGPT
 
-![image](image/image.png)
-
 # Запуск локально
 
 ### Подготовка окружения:
@@ -22,7 +20,12 @@ python app.py
 ```
 Откройте [http://localhost:8000](http://localhost:8000)
 
-# Примечания:
+# Примечания
 * В разработке можно отключить Docker (USE_DOCKER=false в .env); тогда раннер запускается локально (меньше изоляции — только для отладки).
 * Для продакшена используйте процесс‑менеджер (gunicorn/uvicorn+ASGI‑обёртка, reverse proxy) и убедитесь, что Docker доступен серверу.
 * Если matplotlib потребует дополнительные runtime‑библиотеки (редко), добавьте их в Dockerfile (libtiff5, zlib1g и т.п.).
+
+# Скриншоты
+![image](image/image.png)
+![image](image/image2.png)
+![image](image/image3.png)
