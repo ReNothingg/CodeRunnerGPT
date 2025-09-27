@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ReMind — Runner demo</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="container">
+    <h1>ReMind — Python runner (demo)</h1>
+
+    <section class="controls">
+      <button id="btn-gen">Сгенерировать и запустить код</button>
+      <p class="hint">Картинка удаляется через <strong>{{ retention_days }}</strong> дней</p>
+      <pre id="console" class="code">консоль вывода появится здесь...</pre>
+    </section>
+
+    <section class="gallery">
+      {% if images %}
+        {% for img in images %}
+          <div class="card">
+            <img src="/uploads/{{ img }}" alt="plot" class="plot">
+            <div class="fname">{{ img }}</div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div class="no-image">
+          <img src="/static/no-image.svg" alt="no image">
+          <p>Изображений пока нет</p>
+        </div>
+      {% endif %}
+    </section>
+
+  </main>
+
+<script>
+document.getElementById('btn-gen').addEventListener('click', async ()=>{
+  const btn = document.getElementById('btn-gen');
+  btn.disabled = true; btn.textContent = 'Генерация...';
+  const consoleEl = document.getElementById('console');
+  consoleEl.textContent = 'Запрос отправлен...';
+  try{
+    const resp = await fetch('/api/generate', {method:'POST'});
+    const data = await resp.json();
+    consoleEl.textContent = 'STDOUT:\n' + (data.stdout||'') + '\n\nSTDERR:\n' + (data.stderr||'');
+    if (data.image){
+      const imgEl = document.createElement('img');
+      imgEl.src = '/uploads/' + data.image;
+      imgEl.className = 'plot';
+      const card = document.createElement('div'); card.className='card';
+      const fname = document.createElement('div'); fname.className='fname'; fname.textContent = data.image;
+      card.appendChild(imgEl); card.appendChild(fname);
+      document.querySelector('.gallery').prepend(card);
+    }
+  }catch(err){
+    consoleEl.textContent = 'Ошибка: ' + err;
+  }finally{
+    btn.disabled = false; btn.textContent='Сгенерировать и запустить код';
+  }
+});
+</script>
+</body>
+</html>
