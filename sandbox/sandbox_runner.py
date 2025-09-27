@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 import os
 import resource
@@ -27,12 +26,17 @@ def disable_network():
         pass
 
 def main():
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
     p = argparse.ArgumentParser()
     p.add_argument("--code", required=True)
     p.add_argument("--time", type=int, default=10)
     p.add_argument("--mem", type=int, default=1024)
     p.add_argument("--fsize", type=int, default=20)
-    p.add_argument("--max-images", type=int, default=6)
+    p.add_argument("--max-images", type=int, default=8)
     p.add_argument("--output-base", default="output")
     args = p.parse_args()
     code_path = Path(args.code)

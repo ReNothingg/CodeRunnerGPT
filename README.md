@@ -1,6 +1,6 @@
 # CodeRunnerGPT
 
-![image](image/image1.png)
+![image](image/image.png)
 
 # Запуск локально
 

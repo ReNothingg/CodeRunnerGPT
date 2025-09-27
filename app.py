@@ -18,7 +18,7 @@ USE_DOCKER = os.getenv("USE_DOCKER", "true").lower() == "true"
 DOCKER_IMAGE = os.getenv("DOCKER_IMAGE", "python-sandbox:latest")
 MAX_TOKENS = int(os.getenv("MAX_TOKENS", "2048"))
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.2"))
-MAX_IMAGES = int(os.getenv("MAX_IMAGES", "6"))
+MAX_IMAGES = int(os.getenv("MAX_IMAGES", "8"))
 PORT = int(os.getenv("PORT", "8000"))
 HOST = os.getenv("HOST", "0.0.0.0")
 
@@ -32,7 +32,9 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel(MODEL_ID)
+    model = genai.GenerativeModel(MODEL_ID)
+else:
+    model = None
 
 CODE_BLOCK_RE = re.compile(r"```(?:python)?\s*(.+?)\s*```", re.DOTALL | re.IGNORECASE)
 
@@ -79,7 +81,7 @@ def results(job_id, filename):
     directory = RESULTS_DIR / job_id
     return send_from_directory(directory, filename, as_attachment=False)
 
-def run_in_sandbox(job_dir: Path, code_path: Path, timeout_sec=30):
+def run_in_sandbox(job_dir: Path, code_path: Path, timeout_sec=40):
     if USE_DOCKER:
         cmd = [
             "docker","run","--rm",
@@ -91,12 +93,15 @@ def run_in_sandbox(job_dir: Path, code_path: Path, timeout_sec=30):
             "--tmpfs","/tmp:rw,size=64m",
             "--cap-drop=ALL",
             "--security-opt","no-new-privileges",
+            "-e","PYTHONIOENCODING=UTF-8",
+            "-e","LANG=C.UTF-8",
+            "-e","LC_ALL=C.UTF-8",
             "-v",f"{str(job_dir)}:/work:rw",
             "-w","/work",
             DOCKER_IMAGE,
             "python","-u","/runner/sandbox_runner.py",
             "--code",f"/work/{code_path.name}",
-            "--time","10",
+            "--time","12",
             "--mem","1024",
             "--fsize","20",
             "--max-images",str(MAX_IMAGES),
@@ -106,24 +111,25 @@ def run_in_sandbox(job_dir: Path, code_path: Path, timeout_sec=30):
         cmd = [
             "python","-u",str(BASE_DIR / "sandbox" / "sandbox_runner.py"),
             "--code",str(code_path),
-            "--time","10",
+            "--time","12",
             "--mem","1024",
             "--fsize","20",
             "--max-images",str(MAX_IMAGES),
             "--output-base","output",
         ]
-    proc = subprocess.run(cmd, cwd=job_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout_sec, text=True)
+    proc = subprocess.run(cmd, cwd=job_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout_sec, text=True, encoding="utf-8", errors="replace")
     return proc.returncode, proc.stdout, proc.stderr
 
-def list_images(job_dir: Path):
-    items = []
-    for p in job_dir.glob("output_*.png"):
-        items.append(p)
-    items.sort(key=lambda q: int(re.search(r"output_(\d+)\.png$", q.name).group(1)) if re.search(r"output_(\d+)\.png$", q.name) else 0)
-    return items
+def list_images_any(job_dir: Path):
+    exts = {".png",".jpg",".jpeg",".gif"}
+    files = [p for p in job_dir.iterdir() if p.is_file() and p.suffix.lower() in exts]
+    files.sort(key=lambda q: q.stat().st_mtime)
+    return files[:MAX_IMAGES]
 
 @app.route("/generate", methods=["POST"])
 def generate():
+    if not model:
+        return jsonify({"error": "Gemini API не настроен"}), 500
     data = request.get_json(force=True, silent=True) or {}
     user_prompt = (data.get("prompt") or "").strip()
     if not user_prompt:
@@ -143,48 +149,18 @@ def generate():
         return jsonify({"error": f"Gemini API error: {e}"}), 500
     code_file.write_text(code, encoding="utf-8")
     try:
-        rc, out, err = run_in_sandbox(job_dir, code_file, timeout_sec=30)
+        rc, out, err = run_in_sandbox(job_dir, code_file, timeout_sec=40)
     except subprocess.TimeoutExpired:
         rc, out, err = 124, "", "Timeout: execution exceeded limit"
-    (job_dir / "stdout.txt").write_text(out or "", encoding="utf-8")
-    (job_dir / "stderr.txt").write_text(err or "", encoding="utf-8")
-    imgs = [f"/results/{job_id}/{p.name}" for p in list_images(job_dir)]
+    stdout_file.write_text(out or "", encoding="utf-8")
+    stderr_file.write_text(err or "", encoding="utf-8")
+    imgs = [f"/results/{job_id}/{p.name}" for p in list_images_any(job_dir)]
     result = {
         "job_id": job_id,
         "code_url": f"/results/{job_id}/{code_file.name}",
         "stdout_url": f"/results/{job_id}/{stdout_file.name}",
         "stderr_url": f"/results/{job_id}/{stderr_file.name}",
-        "image_urls": imgs if imgs else ["/static/placeholder.svg"],
-        "return_code": rc,
-    }
-    return jsonify(result)
-
-@app.route("/run_code", methods=["POST"])
-def run_code():
-    data = request.get_json(force=True, silent=True) or {}
-    code_text = (data.get("code") or "").strip()
-    if not code_text:
-        return jsonify({"error": "Вставьте код"}), 400
-    job_id = f"{int(time.time())}-{uuid.uuid4().hex[:8]}"
-    job_dir = RESULTS_DIR / job_id
-    job_dir.mkdir(parents=True, exist_ok=True)
-    code_file = job_dir / "user_code.py"
-    stdout_file = job_dir / "stdout.txt"
-    stderr_file = job_dir / "stderr.txt"
-    code_file.write_text(code_text, encoding="utf-8")
-    try:
-        rc, out, err = run_in_sandbox(job_dir, code_file, timeout_sec=30)
-    except subprocess.TimeoutExpired:
-        rc, out, err = 124, "", "Timeout: execution exceeded limit"
-    (job_dir / "stdout.txt").write_text(out or "", encoding="utf-8")
-    (job_dir / "stderr.txt").write_text(err or "", encoding="utf-8")
-    imgs = [f"/results/{job_id}/{p.name}" for p in list_images(job_dir)]
-    result = {
-        "job_id": job_id,
-        "code_url": f"/results/{job_id}/{code_file.name}",
-        "stdout_url": f"/results/{job_id}/{stdout_file.name}",
-        "stderr_url": f"/results/{job_id}/{stderr_file.name}",
-        "image_urls": imgs if imgs else ["/static/placeholder.svg"],
+        "image_urls": imgs if imgs else [],
         "return_code": rc,
     }
     return jsonify(result)
