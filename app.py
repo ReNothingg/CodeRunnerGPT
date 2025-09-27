@@ -101,7 +101,7 @@ def run_in_sandbox(job_dir: Path, code_path: Path, output_path: Path, timeout_se
             "--memory=1024m",
             "--pids-limit=128",
             "--read-only",
-            "--tmpfs", " /tmp:rw,size=64m",
+            "--tmpfs", "/tmp:rw,size=64m",
             "--cap-drop=ALL",
             "--security-opt", "no-new-privileges",
             "-v", f"{str(job_dir)}:/work:rw",

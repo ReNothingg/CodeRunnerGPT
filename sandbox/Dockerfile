@@ -19,9 +19,7 @@ USER sandbox
 
 # Runner files
 WORKDIR /runner
-# sandbox_runner.py будет скопирован при сборке из корня проекта
-# (см. инструкцию в разделе "Запуск")
-# После копирования runner можно вызывать как: python -u /runner/sandbox_runner.py
+COPY sandbox_runner.py /runner/sandbox_runner.py
 
 # Runtime env
 ENV MPLCONFIGDIR=/tmp/mpl \
