@@ -1,5 +1,7 @@
 # CodeRunnerGPT
 
+![image](image/image1.png)
+
 # Запуск локально
 
 ### Подготовка окружения:
