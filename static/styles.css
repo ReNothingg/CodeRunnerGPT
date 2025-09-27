@@ -2,61 +2,103 @@
   --bg: #fff;
   --fg: #000;
   --muted: #666;
-  --border: #000;
+  --line: #000;
+  --accent: #000;
 }
 
 * {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   background: var(--bg);
   color: var(--fg);
-  font-family: ui-sans-serif, system-ui, Arial, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
 
-header {
-  padding: 24px 16px;
-  border-bottom: 1px solid var(--border);
-}
-
-h1 {
-  margin: 0 0 8px 0;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-.sub {
-  margin: 0;
-  color: var(--muted);
-}
-
-main {
-  padding: 16px;
-  max-width: 1200px;
+.container {
+  max-width: 1100px;
   margin: 0 auto;
+  padding: 0 16px;
 }
+
+
+/* ===== Topbar ===== */
+
+.topbar {
+  border-bottom: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.topbar .brand {
+  font-weight: 800;
+  font-size: 20px;
+  padding-top: 14px;
+}
+
+.topbar .meta {
+  color: var(--muted);
+  padding-bottom: 14px;
+}
+
+
+/* ===== Tabs ===== */
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  padding: 16px 0;
+}
+
+.tab {
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--fg);
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.tab.active {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+
+/* ===== Panels ===== */
 
 .panel {
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   padding: 12px;
 }
+
+.panel.hidden {
+  display: none;
+}
+
+
+/* ===== Form Elements ===== */
 
 label {
   display: block;
   margin-bottom: 8px;
+  font-weight: 600;
 }
 
 textarea {
   width: 100%;
   padding: 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--bg);
   color: var(--fg);
-  font-family: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+
+
+/* ===== Buttons & Actions ===== */
 
 .actions {
   display: flex;
@@ -68,56 +110,146 @@ textarea {
 button {
   background: var(--fg);
   color: var(--bg);
-  border: 1px solid var(--border);
-  padding: 8px 12px;
+  border: 1px solid var(--line);
+  padding: 8px 14px;
   cursor: pointer;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 button:hover {
   filter: invert(1);
 }
 
-#status {
+button.ghost {
+  background: transparent;
+  color: var(--fg);
+}
+
+button.ghost:hover {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+
+/* ===== Status ===== */
+
+.status {
   color: var(--muted);
 }
+
+
+/* ===== Results ===== */
 
 .results {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  margin-top: 16px;
+  margin: 16px 0 24px;
 }
 
-.result-block {
-  border: 1px solid var(--border);
+.card {
+  border: 1px solid var(--line);
   padding: 12px;
   min-height: 120px;
+  display: flex;
+  flex-direction: column;
 }
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+
+/* ===== Typography ===== */
 
 pre.mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   white-space: pre-wrap;
   word-break: break-word;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .muted {
   color: var(--muted);
 }
 
-img {
-  max-width: 100%;
+
+/* ===== Gallery ===== */
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.gallery img {
+  width: 100%;
   height: auto;
-  border: 1px solid var(--border);
+  display: block;
+  border: 1px solid var(--line);
 }
 
-footer {
-  padding: 12px 16px;
-  border-top: 1px solid var(--border);
+
+/* ===== Footer ===== */
+
+.footer {
+  border-top: 1px solid var(--line);
   color: var(--muted);
+  padding: 12px 0;
 }
 
-@media (max-width: 900px) {
+
+/* ===== Spinner ===== */
+
+.spinner {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.6);
+  z-index: 10;
+}
+
+.spinner::after {
+  content: "";
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid var(--fg);
+  border-top-color: transparent;
+  animation: spin 0.8s linear infinite;
+}
+
+
+/* ===== Utility ===== */
+
+.hidden {
+  display: none;
+}
+
+
+/* ===== Animations ===== */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* ===== Responsive ===== */
+
+@media (max-width: 960px) {
   .results {
     grid-template-columns: 1fr;
   }

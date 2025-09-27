@@ -1,101 +1,165 @@
 <!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AI → Python → Изображение</title>
-  <link rel="stylesheet" href="/static/styles.css" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>AI → Python → Image</title>
+  <link rel="stylesheet" href="/static/styles.css"/>
 </head>
 <body>
-  <header>
-    <h1>AI → Python → Image</h1>
+  <header class="topbar">
+    <div class="container">
+      <div class="brand">AI → Python → Image</div>
+    </div>
   </header>
-
-  <main>
-    <section class="panel">
-      <form id="frm">
-        <label for="prompt">Опишите, что нужно сгенерировать:</label>
-        <textarea id="prompt" name="prompt" rows="5" placeholder="Например: Построй график sin(x) на [-2π,2π] с сеткой и подписями осей."></textarea>
-        <div class="actions">
-          <button type="submit">Сгенерировать</button>
-          <span id="status"></span>
-        </div>
-      </form>
+  <main class="container">
+    <section class="tabs">
+      <button class="tab active" data-tab="ai">Генерация ИИ</button>
+      <button class="tab" data-tab="run">Запуск кода</button>
     </section>
-
+    <section class="panel" id="panel-ai">
+      <label for="prompt">Что нужно сгенерировать</label>
+      <textarea id="prompt" rows="6" placeholder="Например: Построй график sin(x) на [-2π,2π] с сеткой и подписями осей."></textarea>
+      <div class="actions">
+        <button id="btn-generate">Сгенерировать</button>
+        <span id="status-ai" class="status"></span>
+      </div>
+    </section>
+    <section class="panel hidden" id="panel-run">
+      <label for="code-area">Вставьте Python‑код</label>
+      <textarea id="code-area" rows="12" placeholder="Например: print('Hello world')&#10;или код с matplotlib с plt.show()"></textarea>
+      <div class="actions">
+        <button id="btn-run">Запустить</button>
+        <span id="status-run" class="status"></span>
+      </div>
+    </section>
     <section class="results">
-      <div class="result-block">
-        <h2>Код</h2>
+      <div class="card">
+        <div class="card-head">
+          <h2>Код</h2>
+          <button id="btn-copy" class="ghost">Копировать</button>
+        </div>
         <pre id="code" class="mono muted">—</pre>
       </div>
-      <div class="result-block">
-        <h2>Изображение</h2>
-        <img id="img" src="/static/placeholder.svg" alt="result" />
+      <div class="card">
+        <div class="card-head"><h2>Изображения</h2></div>
+        <div id="images" class="gallery"></div>
       </div>
-      <div class="result-block">
-        <h2>stdout</h2>
+      <div class="card">
+        <div class="card-head"><h2>stdout</h2></div>
         <pre id="stdout" class="mono muted">—</pre>
       </div>
-      <div class="result-block">
-        <h2>stderr</h2>
+      <div class="card">
+        <div class="card-head"><h2>stderr</h2></div>
         <pre id="stderr" class="mono muted">—</pre>
       </div>
     </section>
   </main>
-
-  <footer>
-    <small>Файлы удаляются автоматически через ENV IMAGE_RETENTION_DAYS. Безопасное исполнение в изоляции (без сети).</small>
+  <div id="spinner" class="spinner hidden"></div>
+  <footer class="footer">
+    <div class="container">
+      <small>Изоляция без сети, лимиты ресурсов, автоудаление через IMAGE_RETENTION_DAYS</small>
+    </div>
   </footer>
-
   <script>
-    const frm = document.getElementById('frm');
-    const promptEl = document.getElementById('prompt');
-    const codeEl = document.getElementById('code');
-    const imgEl = document.getElementById('img');
-    const stdoutEl = document.getElementById('stdout');
-    const stderrEl = document.getElementById('stderr');
-    const statusEl = document.getElementById('status');
+    const tabs = document.querySelectorAll('.tab')
+    const panelAI = document.getElementById('panel-ai')
+    const panelRun = document.getElementById('panel-run')
+    const btnGen = document.getElementById('btn-generate')
+    const btnRun = document.getElementById('btn-run')
+    const statusAI = document.getElementById('status-ai')
+    const statusRun = document.getElementById('status-run')
+    const promptEl = document.getElementById('prompt')
+    const codeArea = document.getElementById('code-area')
+    const codeEl = document.getElementById('code')
+    const stdoutEl = document.getElementById('stdout')
+    const stderrEl = document.getElementById('stderr')
+    const imagesEl = document.getElementById('images')
+    const btnCopy = document.getElementById('btn-copy')
+    const spinner = document.getElementById('spinner')
 
-    frm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const prompt = promptEl.value.trim();
-      if (!prompt) return;
-      statusEl.textContent = 'Генерация...';
-      codeEl.textContent = '—';
-      stdoutEl.textContent = '—';
-      stderrEl.textContent = '—';
-      imgEl.src = '/static/placeholder.svg';
-
-      try {
-        const res = await fetch('/generate', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({prompt})
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          statusEl.textContent = data.error || 'Ошибка';
-          return;
+    function showSpinner(v){ spinner.classList.toggle('hidden', !v) }
+    function setStatus(el, t){ el.textContent = t || '' }
+    function clearResults(){
+      codeEl.textContent = '—'
+      stdoutEl.textContent = '—'
+      stderrEl.textContent = '—'
+      imagesEl.innerHTML = ''
+    }
+    function renderImages(urls){
+      imagesEl.innerHTML = ''
+      if (!urls || !urls.length){ addPlaceholder(); return }
+      urls.forEach(u=>{
+        const a = document.createElement('a')
+        a.href = u
+        a.target = '_blank'
+        const img = document.createElement('img')
+        img.src = u
+        a.appendChild(img)
+        imagesEl.appendChild(a)
+      })
+    }
+    function addPlaceholder(){
+      const img = document.createElement('img')
+      img.src = '/static/placeholder.svg'
+      imagesEl.appendChild(img)
+    }
+    tabs.forEach(b=>{
+      b.addEventListener('click', ()=>{
+        tabs.forEach(x=>x.classList.remove('active'))
+        b.classList.add('active')
+        if (b.dataset.tab==='ai'){
+          panelAI.classList.remove('hidden')
+          panelRun.classList.add('hidden')
+        } else {
+          panelRun.classList.remove('hidden')
+          panelAI.classList.add('hidden')
         }
-        statusEl.textContent = `Готово (код=${data.return_code})`;
-
-        // Load code
-        const codeRes = await fetch(data.code_url);
-        codeEl.textContent = await codeRes.text();
-
-        // Image
-        imgEl.src = data.image_url;
-
-        // stdout/stderr
-        const sOutRes = await fetch(data.stdout_url);
-        stdoutEl.textContent = await sOutRes.text();
-
-        const sErrRes = await fetch(data.stderr_url);
-        stderrEl.textContent = await sErrRes.text();
-      } catch (err) {
-        statusEl.textContent = 'Ошибка сети';
-      }
-    });
+      })
+    })
+    btnGen.addEventListener('click', async ()=>{
+      const prompt = promptEl.value.trim()
+      if (!prompt) return
+      clearResults()
+      setStatus(statusAI,'Генерация...')
+      showSpinner(true)
+      try{
+        const res = await fetch('/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt})})
+        const data = await res.json()
+        if(!res.ok){ setStatus(statusAI, data.error || 'Ошибка'); showSpinner(false); return }
+        setStatus(statusAI, `Готово (код=${data.return_code})`)
+        const codeRes = await fetch(data.code_url); codeEl.textContent = await codeRes.text()
+        const sOutRes = await fetch(data.stdout_url); stdoutEl.textContent = await sOutRes.text()
+        const sErrRes = await fetch(data.stderr_url); stderrEl.textContent = await sErrRes.text()
+        renderImages(data.image_urls)
+      }catch(e){ setStatus(statusAI,'Ошибка сети') }
+      showSpinner(false)
+    })
+    btnRun.addEventListener('click', async ()=>{
+      const code = codeArea.value.trim()
+      if (!code) return
+      clearResults()
+      setStatus(statusRun,'Запуск...')
+      showSpinner(true)
+      try{
+        const res = await fetch('/run_code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})})
+        const data = await res.json()
+        if(!res.ok){ setStatus(statusRun, data.error || 'Ошибка'); showSpinner(false); return }
+        setStatus(statusRun, `Готово (код=${data.return_code})`)
+        const codeRes = await fetch(data.code_url); codeEl.textContent = await codeRes.text()
+        const sOutRes = await fetch(data.stdout_url); stdoutEl.textContent = await sOutRes.text()
+        const sErrRes = await fetch(data.stderr_url); stderrEl.textContent = await sErrRes.text()
+        renderImages(data.image_urls)
+      }catch(e){ setStatus(statusRun,'Ошибка сети') }
+      showSpinner(false)
+    })
+    btnCopy.addEventListener('click', async ()=>{
+      try{
+        await navigator.clipboard.writeText(codeEl.textContent || '')
+        btnCopy.textContent = 'Скопировано'
+        setTimeout(()=>btnCopy.textContent='Копировать',1200)
+      }catch(e){}
+    })
   </script>
 </body>
 </html>
