@@ -1,4 +1,3 @@
-# app.py
 import os, tempfile, shutil, subprocess, base64, uuid, time
 from flask import Flask, render_template, request, jsonify, send_from_directory
 from threading import Thread
@@ -16,7 +15,6 @@ RUNNER_IMAGE = os.environ.get('RUNNER_IMAGE', 'remind-runner')
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = str(UPLOAD_FOLDER)
 
-# Background cleaner
 
 def cleaner_worker():
     while True:
@@ -29,16 +27,11 @@ def cleaner_worker():
                         p.unlink()
             except Exception:
                 pass
-        time.sleep(24 * 3600)  # run once per day
+        time.sleep(24 * 3600)
 
 Thread(target=cleaner_worker, daemon=True).start()
 
-# Helper: placeholder Gemini call (user must set up their own API)
 def generate_code_with_gemini(prompt_text):
-    # === PLACEHOLDER ===
-    # In production you should call Google's Gemini API (or another LLM)
-    # securely with authentication. Here we simulate the response by
-    # returning a safe, simple python script.
     safe_script = r"""
 import numpy as np
 import matplotlib
@@ -63,11 +56,9 @@ def index():
 
 @app.route('/api/generate', methods=['POST'])
 def api_generate():
-    # read prompt.md
     with open('prompt.md', 'r', encoding='utf-8') as f:
         prompt_text = f.read()
 
-    # ask Gemini (placeholder)
     code = generate_code_with_gemini(prompt_text)
 
     job_id = str(uuid.uuid4())[:8]
@@ -77,11 +68,9 @@ def api_generate():
     code_dir.mkdir()
     output_dir.mkdir()
 
-    # write user_code.py
     with open(code_dir / 'user_code.py', 'w', encoding='utf-8') as f:
         f.write(code)
 
-    # run docker runner
     try:
         cmd = [
             'docker', 'run', '--rm',
@@ -99,7 +88,6 @@ def api_generate():
         shutil.rmtree(tmpdir, ignore_errors=True)
         return jsonify({'error': str(e)}), 500
 
-    # read outputs
     stdout = ''
     stderr = ''
     try:
@@ -113,7 +101,6 @@ def api_generate():
     except:
         pass
 
-    # move plot.png to uploads
     saved_name = None
     for candidate in ['plot.png', 'plot.jpg', 'plot.jpeg', 'plot.svg']:
         src = output_dir / candidate
@@ -125,7 +112,6 @@ def api_generate():
             saved_name = dest_name
             break
 
-    # cleanup
     shutil.rmtree(tmpdir, ignore_errors=True)
 
     return jsonify({'stdout': stdout, 'stderr': stderr, 'image': saved_name})
