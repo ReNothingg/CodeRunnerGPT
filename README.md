@@ -8,12 +8,13 @@
 * Задайте GEMINI_API_KEY.
 * Соберите sandbox-образ:
 * * **В корне проекта выполните:**
-* * ```cp sandbox_runner.py sandbox/```
+* * **Linux:** ```cp sandbox_runner.py sandbox/```
+* * **Windows:** ```copy sandbox_runner.py sandbox\```
 * * ```docker build -t python-sandbox:latest sandbox```
 
 ### Установите зависимости и запустите сервер:
 ```bash
-python -m venv .venv && . .venv/bin/activate```
+python -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
 python app.py
 ```
